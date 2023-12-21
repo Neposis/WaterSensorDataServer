@@ -7,6 +7,24 @@ let index = 0;
 let connected_clients = {};
 let arduino_client;
 
+
+
+
+// ================================= Arduino update notifications =================================
+let arduinoActionHandler = () => {
+    // ------------------------- Update all connected clients with new data -------------------------
+
+    for (const key of connected_clients.keys()) {
+        console.log(key)
+    }
+}
+
+// ================================= Client Actions =================================
+let clientActionHandler = () => {
+
+}
+
+// ================================= Getting devices connected =================================
 wss.on('connection', (ws) => {
 
     let local_index = index;
@@ -15,9 +33,8 @@ wss.on('connection', (ws) => {
     index++;
     ws.send("State your business!")
 
-    // ------------------------------------------ OnMessage -------------------------------------
+    // ------------------------------------- OnMessage -------------------------------------
     ws.on('message', (data) => {
-
 
         if (connection_msg) {
             data = data.toString()
@@ -48,13 +65,15 @@ wss.on('connection', (ws) => {
             return;
         }
 
+        // Process data based on where the message is from
+        if (client_type === "Arduino") {arduinoActionHandler()}
+        else {clientActionHandler()}
+
 
         console.log(data.toString())
-
-
     });
 
-    // ------------------------------------------ OnClose -------------------------------------
+    // ------------------------------------- OnClose -------------------------------------
     ws.on('close', () => {
         if (client_type === "Unknown") {
             console.log(`Forcefully closing connection`);
@@ -68,5 +87,7 @@ wss.on('connection', (ws) => {
         console.error(`${client_type} #${local_index} WebSocket error: ${error.message}`);
     });
 });
+
+
 
 
