@@ -2,8 +2,7 @@ import { WebSocketServer } from 'ws';
 import { JsonDB, Config } from 'node-json-db';
 
 
-
-const wss = new WebSocketServer({ port: 433 });
+const wss = new WebSocketServer({port: 8085 });
 let db = new JsonDB(new Config("test.json", true, true, '/'));
 
 let index = 0;
@@ -18,8 +17,10 @@ let arduinoActionHandler = async (data) => {
 
     const date = new Date(); // Add time data
     newData["time"] = Math.floor(date.getTime()/1000)
-    // Add to database
-    console.log(newData)
+    if (newData.longitude === 0 || newData.latitude === 0) {
+        newData.longitude = -0.5887466;
+        newData.latitude = 51.2427036;
+    }
 
     // ------------------------- Update all connected clients with new data -------------------------
     if (Object.keys(connected_clients).length === 0) return;
@@ -27,9 +28,8 @@ let arduinoActionHandler = async (data) => {
     for (const ws of Object.keys(connected_clients)) {
         connected_clients[ws].send(JSON.stringify(newData))
     }
-    const t = newData.time
-    newData.time = null
-    db.push(`/${newData.time}`, newData).then()
+    // Add to database
+    //db.push(`/${newData.time}`, newData).then()
 
 }
 
@@ -40,7 +40,6 @@ let clientActionHandler = () => {
 
 // ================================= Getting devices connected =================================
 wss.on('connection', (ws) => {
-
     let local_index = index;
     let connection_msg = true;
     let client_type;

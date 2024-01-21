@@ -1,4 +1,4 @@
-const WebSocket = require('ws');
+import { WebSocket } from 'ws';
 
 const websocketServerUrl = 'ws://localhost:433';
 
