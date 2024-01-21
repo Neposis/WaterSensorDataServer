@@ -8,14 +8,21 @@ let connected_clients = {};
 let arduino_client;
 
 
-
-
 // ================================= Arduino update notifications =================================
-let arduinoActionHandler = () => {
-    // ------------------------- Update all connected clients with new data -------------------------
+let arduinoActionHandler = (data) => {
 
-    for (const key of connected_clients.keys()) {
-        console.log(key)
+    let newData = JSON.parse(data.toString())
+
+    const date = new Date(); // Add time data
+    newData["time"] = Math.floor(date.getTime()/1000)
+    // Add to database
+    console.log(newData)
+
+    // ------------------------- Update all connected clients with new data -------------------------
+    if (Object.keys(connected_clients).length === 0) return;
+
+    for (const ws of Object.keys(connected_clients)) {
+        connected_clients[ws].send(JSON.stringify(newData))
     }
 }
 
@@ -66,11 +73,10 @@ wss.on('connection', (ws) => {
         }
 
         // Process data based on where the message is from
-        if (client_type === "Arduino") {arduinoActionHandler()}
-        else {clientActionHandler()}
-
-
-        console.log(data.toString())
+        if (client_type === "Arduino")
+            {arduinoActionHandler(data)}
+        else
+            {clientActionHandler()}
     });
 
     // ------------------------------------- OnClose -------------------------------------
