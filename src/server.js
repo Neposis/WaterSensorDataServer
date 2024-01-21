@@ -1,7 +1,9 @@
 const { WebSocketServer } = require('ws')
+import { JsonDB, Config } from 'node-json-db';
+
 
 const wss = new WebSocketServer({ port: 433 });
-
+var db = new JsonDB(new Config("../outputData/test", true, true, '/'));
 
 let index = 0;
 let connected_clients = {};
