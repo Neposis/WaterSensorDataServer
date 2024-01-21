@@ -1,9 +1,10 @@
-const { WebSocketServer } = require('ws')
+import { WebSocketServer } from 'ws';
 import { JsonDB, Config } from 'node-json-db';
 
 
+
 const wss = new WebSocketServer({ port: 433 });
-var db = new JsonDB(new Config("../outputData/test", true, true, '/'));
+let db = new JsonDB(new Config("test.json", true, true, '/'));
 
 let index = 0;
 let connected_clients = {};
@@ -11,7 +12,7 @@ let arduino_client;
 
 
 // ================================= Arduino update notifications =================================
-let arduinoActionHandler = (data) => {
+let arduinoActionHandler = async (data) => {
 
     let newData = JSON.parse(data.toString())
 
@@ -26,6 +27,10 @@ let arduinoActionHandler = (data) => {
     for (const ws of Object.keys(connected_clients)) {
         connected_clients[ws].send(JSON.stringify(newData))
     }
+    const t = newData.time
+    newData.time = null
+    db.push(`/${newData.time}`, newData).then()
+
 }
 
 // ================================= Client Actions =================================
