@@ -1,7 +1,7 @@
 import { WebSocketServer } from 'ws';
 import { JsonDB, Config } from 'node-json-db';
-import xlsx from "json-as-xlsx"
-import path from "node:path"
+import xlsx from "json-as-xlsx";
+import fs from 'fs';
 
 
 const wss = new WebSocketServer({port: 8085 });
@@ -38,7 +38,7 @@ let arduinoActionHandler = (data) => {
 }
 
 // ================================= Client Actions =================================
-let clientActionHandler = async (data)=> {
+let clientActionHandler = async (data, ws)=> {
     let newData = {command: "", args: []}
     newData = JSON.parse(data.toString())
 
@@ -66,22 +66,35 @@ let clientActionHandler = async (data)=> {
             ]
 
             for (const i in exportableDataIndexes) {
-                let entry = {}
-                entry = await db.getData(`/${i}`)
+                let entry = {...await db.getData(`/${i}`)}
                 entry.time = new Date(i * 1000).toLocaleString()
                 data[0].content.push(entry)
             }
 
             let settings = {
-                fileName: "C:\\Users\\David\\WebstormProjects\\WaterSensorData\\static\\ExportedData.xlsx", // Name of the resulting spreadsheet
+                fileName: "C:\\Users\\David\\WebstormProjects\\WaterSensorData\\static\\ExportedData", // Name of the resulting spreadsheet
                 extraLength: 3, // A bigger number means that columns will be wider
                 writeMode: "writeFile", // The available parameters are 'WriteFile' and 'write'. This setting is optional. Useful in such cases https://docs.sheetjs.com/docs/solutions/output#example-remote-file
                 writeOptions: {}, // Style options from https://docs.sheetjs.com/docs/api/write-options
                 RTL: false, // Display the columns from right-to-left (the default value is false)
             }
 
-            await xlsx(data, settings)
-            return "export";
+            let finished = function () {
+                let delay = setInterval(() => {
+                    ws.send(JSON.stringify({command: "exportReady"}))
+                    clearInterval(delay)
+                }, 8000)
+            }
+
+            xlsx(data, settings, finished)
+            break;
+
+        case "exportJson":
+
+            fs.copyFile('C:\\Users\\David\\WebstormProjects\\WaterSensorDataServer\\outputData\\test.json', 'C:\\Users\\David\\WebstormProjects\\WaterSensorData\\static\\ExportedData.json' ,() => {
+                ws.send(JSON.stringify({command: "exportReady"}))
+            })
+            break;
     }
 
 }
@@ -93,10 +106,7 @@ wss.on('connection', (ws) => {
     let client_type;
     index++;
     ws.send("State your business!")
-    // let tryit = setInterval(() => {
-    //     clientActionHandler(JSON.stringify({command: "export"})).then()
-    //     clearInterval(tryit)
-    // }, 5000)
+
 
     // ------------------------------------- OnMessage -------------------------------------
     ws.on('message', (data) => {
@@ -134,11 +144,7 @@ wss.on('connection', (ws) => {
         if (client_type === "Arduino")
             {arduinoActionHandler(data)}
         else
-            {clientActionHandler(data).then((val) => {
-                if (val === "export") {
-                    ws.send(JSON.stringify({command: "exportReady"}))
-                }
-            })}
+            {clientActionHandler(data, ws).then()}
     });
 
     // ------------------------------------- OnClose -------------------------------------
