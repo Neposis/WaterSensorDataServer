@@ -1,6 +1,6 @@
 import { WebSocket } from 'ws';
 
-const websocketServerUrl = 'ws://localhost:433';
+const websocketServerUrl = 'ws://localhost:8085';
 
 const ws = new WebSocket(websocketServerUrl);
 

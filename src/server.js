@@ -1,9 +1,11 @@
 import { WebSocketServer } from 'ws';
 import { JsonDB, Config } from 'node-json-db';
+import xlsx from "json-as-xlsx"
+import path from "node:path"
 
 
 const wss = new WebSocketServer({port: 8085 });
-let db = new JsonDB(new Config("test.json", true, true, '/'));
+let db = new JsonDB(new Config("./outputData/test.json", true, true, '/'));
 
 let index = 0;
 let connected_clients = {};
@@ -11,16 +13,20 @@ let arduino_client;
 
 
 // ================================= Arduino update notifications =================================
-let arduinoActionHandler = async (data) => {
+let arduinoActionHandler = (data) => {
 
     let newData = JSON.parse(data.toString())
-
     const date = new Date(); // Add time data
+
     newData["time"] = Math.floor(date.getTime()/1000)
+
     if (newData.longitude === 0 || newData.latitude === 0) {
         newData.longitude = -0.5887466;
         newData.latitude = 51.2427036;
     }
+
+    // Add to database
+    db.push(`/${newData.time}`, newData).then()
 
     // ------------------------- Update all connected clients with new data -------------------------
     if (Object.keys(connected_clients).length === 0) return;
@@ -28,13 +34,55 @@ let arduinoActionHandler = async (data) => {
     for (const ws of Object.keys(connected_clients)) {
         connected_clients[ws].send(JSON.stringify(newData))
     }
-    // Add to database
-    //db.push(`/${newData.time}`, newData).then()
 
 }
 
 // ================================= Client Actions =================================
-let clientActionHandler = () => {
+let clientActionHandler = async (data)=> {
+    let newData = {command: "", args: []}
+    newData = JSON.parse(data.toString())
+
+    switch (newData.command) {
+        case "delete":
+            await db.delete("/")
+            break;
+
+        case "export":
+            let exportableDataIndexes = await db.getData("/")
+
+            let data = [
+                {
+                    sheet: "Data",
+                    columns: [
+                        { label: "Time", value: "time"},
+                        { label: "Celsius", value: "celsius"}, // Top level data
+                        { label: "Fahrenheit", value: "fahrenheit"},
+                        { label: "PH", value: "ph"},
+                        { label: "Turbidity", value: "turbidity"},
+                        { label: "TDS", value: "tds"}, // Run functions
+                    ],
+                    content: [],
+                },
+            ]
+
+            for (const i in exportableDataIndexes) {
+                let entry = {}
+                entry = await db.getData(`/${i}`)
+                entry.time = new Date(i * 1000).toLocaleString()
+                data[0].content.push(entry)
+            }
+
+            let settings = {
+                fileName: "C:\\Users\\David\\WebstormProjects\\WaterSensorData\\static\\ExportedData.xlsx", // Name of the resulting spreadsheet
+                extraLength: 3, // A bigger number means that columns will be wider
+                writeMode: "writeFile", // The available parameters are 'WriteFile' and 'write'. This setting is optional. Useful in such cases https://docs.sheetjs.com/docs/solutions/output#example-remote-file
+                writeOptions: {}, // Style options from https://docs.sheetjs.com/docs/api/write-options
+                RTL: false, // Display the columns from right-to-left (the default value is false)
+            }
+
+            await xlsx(data, settings)
+            return "export";
+    }
 
 }
 
@@ -45,6 +93,10 @@ wss.on('connection', (ws) => {
     let client_type;
     index++;
     ws.send("State your business!")
+    // let tryit = setInterval(() => {
+    //     clientActionHandler(JSON.stringify({command: "export"})).then()
+    //     clearInterval(tryit)
+    // }, 5000)
 
     // ------------------------------------- OnMessage -------------------------------------
     ws.on('message', (data) => {
@@ -82,7 +134,11 @@ wss.on('connection', (ws) => {
         if (client_type === "Arduino")
             {arduinoActionHandler(data)}
         else
-            {clientActionHandler()}
+            {clientActionHandler(data).then((val) => {
+                if (val === "export") {
+                    ws.send(JSON.stringify({command: "exportReady"}))
+                }
+            })}
     });
 
     // ------------------------------------- OnClose -------------------------------------
