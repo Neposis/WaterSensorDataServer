@@ -5,7 +5,7 @@ import fs from 'fs';
 
 
 const wss = new WebSocketServer({port: 8085 });
-let db = new JsonDB(new Config("./outputData/test.json", true, true, '/'));
+let db = new JsonDB(new Config("../outputData/test.json", true, true, '/'));
 
 let index = 0;
 let connected_clients = {};
@@ -20,10 +20,10 @@ let arduinoActionHandler = (data) => {
 
     newData["time"] = Math.floor(date.getTime()/1000)
 
-    if (newData.longitude === 0 || newData.latitude === 0) {
-        newData.longitude = -0.5887466;
-        newData.latitude = 51.2427036;
-    }
+    // if (newData.longitude === 0 || newData.latitude === 0) {
+    //     newData.longitude = -0.5887466;
+    //     newData.latitude = 51.2427036;
+    // }
 
     // Add to database
     db.push(`/${newData.time}`, newData).then()
@@ -55,11 +55,11 @@ let clientActionHandler = async (data, ws)=> {
                     sheet: "Data",
                     columns: [
                         { label: "Time", value: "time"},
-                        { label: "Celsius", value: "celsius"}, // Top level data
-                        { label: "Fahrenheit", value: "fahrenheit"},
-                        { label: "PH", value: "ph"},
-                        { label: "Turbidity", value: "turbidity"},
-                        { label: "TDS", value: "tds"}, // Run functions
+                        { label: "TENG1", value: "TENG"}, // Top level data
+                        { label: "TENG2", value: "TENG"},
+                        { label: "TENG3", value: "TENG"},
+                        { label: "TENG4", value: "TENG"},
+                        // { label: "TDS", value: "tds"}, // Run functions
                     ],
                     content: [],
                 },
@@ -110,6 +110,7 @@ wss.on('connection', (ws) => {
 
     // ------------------------------------- OnMessage -------------------------------------
     ws.on('message', (data) => {
+        console.log(data.toString())
 
         if (connection_msg) {
             data = data.toString()
