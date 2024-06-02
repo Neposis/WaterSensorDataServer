@@ -5,7 +5,7 @@ import fs from 'fs';
 
 
 const wss = new WebSocketServer({port: 8085 });
-let db = new JsonDB(new Config("../outputData/test.json", true, true, '/'));
+let db = new JsonDB(new Config("C:\\Users\\David\\WebstormProjects\\WaterSensorDataServer\\outputData\\test.json", true, true, '/'));
 
 let index = 0;
 let connected_clients = {};
@@ -21,8 +21,8 @@ let arduinoActionHandler = (data) => {
     newData["time"] = Math.floor(date.getTime()/1000)
 
     // if (newData.longitude === 0 || newData.latitude === 0) {
-    //     newData.longitude = -0.5887466;
-    //     newData.latitude = 51.2427036;
+        newData.longitude = -0.5887466;
+        newData.latitude = 51.2427036;
     // }
 
     // Add to database
@@ -44,22 +44,23 @@ let clientActionHandler = async (data, ws)=> {
 
     switch (newData.command) {
         case "delete":
+            console.log("Delete command")
             await db.delete("/")
             break;
 
         case "export":
             let exportableDataIndexes = await db.getData("/")
+            console.log("Excel export command")
 
             let data = [
                 {
                     sheet: "Data",
                     columns: [
                         { label: "Time", value: "time"},
-                        { label: "TENG1", value: "TENG"}, // Top level data
-                        { label: "TENG2", value: "TENG"},
-                        { label: "TENG3", value: "TENG"},
-                        { label: "TENG4", value: "TENG"},
-                        // { label: "TDS", value: "tds"}, // Run functions
+                        { label: "TENG1", value: "TENG1"}, // Top level data
+                        { label: "TENG2", value: "TENG2"},
+                        { label: "TENG3", value: "TENG3"},
+                        { label: "TENG4", value: "TENG4"}
                     ],
                     content: [],
                 },
@@ -90,6 +91,7 @@ let clientActionHandler = async (data, ws)=> {
             break;
 
         case "exportJson":
+            console.log("JSON command")
 
             fs.copyFile('C:\\Users\\David\\WebstormProjects\\WaterSensorDataServer\\outputData\\test.json', 'C:\\Users\\David\\WebstormProjects\\WaterSensorData\\static\\ExportedData.json' ,() => {
                 ws.send(JSON.stringify({command: "exportReady"}))
@@ -110,7 +112,7 @@ wss.on('connection', (ws) => {
 
     // ------------------------------------- OnMessage -------------------------------------
     ws.on('message', (data) => {
-        console.log(data.toString())
+        // console.log(data.toString())
 
         if (connection_msg) {
             data = data.toString()
