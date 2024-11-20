@@ -5,7 +5,7 @@ import fs from 'fs';
 
 
 const wss = new WebSocketServer({port: 8085 });
-let db = new JsonDB(new Config("C:\\Users\\David\\WebstormProjects\\WaterSensorDataServer\\outputData\\test.json", true, true, '/'));
+let db = new JsonDB(new Config("%Documents%\\test.json", true, true, '/'));
 
 let index = 0;
 let connected_clients = {};
@@ -73,7 +73,7 @@ let clientActionHandler = async (data, ws)=> {
             }
 
             let settings = {
-                fileName: "C:\\Users\\David\\WebstormProjects\\WaterSensorData\\static\\ExportedData", // Name of the resulting spreadsheet
+                fileName: "%Downloads%\\ExcelExport", // Name of the resulting spreadsheet
                 extraLength: 3, // A bigger number means that columns will be wider
                 writeMode: "writeFile", // The available parameters are 'WriteFile' and 'write'. This setting is optional. Useful in such cases https://docs.sheetjs.com/docs/solutions/output#example-remote-file
                 writeOptions: {}, // Style options from https://docs.sheetjs.com/docs/api/write-options
@@ -82,7 +82,7 @@ let clientActionHandler = async (data, ws)=> {
 
             let finished = function () {
                 let delay = setInterval(() => {
-                    ws.send(JSON.stringify({command: "exportReady"}))
+                    ws.send(JSON.stringify({command: "exportReady", location: "%Downloads%\\ExcelExport.xlsx"}))
                     clearInterval(delay)
                 }, 8000)
             }
@@ -93,8 +93,8 @@ let clientActionHandler = async (data, ws)=> {
         case "exportJson":
             console.log("JSON command")
 
-            fs.copyFile('C:\\Users\\David\\WebstormProjects\\WaterSensorDataServer\\outputData\\test.json', 'C:\\Users\\David\\WebstormProjects\\WaterSensorData\\static\\ExportedData.json' ,() => {
-                ws.send(JSON.stringify({command: "exportReady"}))
+            fs.copyFile('%Documents%\\test.json', '%Downloads%\\ExportedData.json' ,() => {
+                ws.send(JSON.stringify({command: "exportReady", location: "%Downloads%\\ExportedData.json"}))
             })
             break;
     }
