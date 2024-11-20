@@ -34,10 +34,13 @@ ws.on('message', (data) => {
                 TENG3 += (Math.random() / 10.0) - 0.05;
                 TENG4 += (Math.random() * 2.0) - 1.0;
                 testMsg = {
-                    "TENG1": TENG1,
+                    "TENGA": TENG1,
                     "TENG2": TENG2,
                     "TENG3": TENG3,
-                    "TENG4": TENG4
+                    "TENG4": TENG4,
+                    "TENG5": TENG4,
+                    "TENG6": TENG4,
+                    "TENG7": TENG4
                 }
 
                 ws.send(JSON.stringify(testMsg));

@@ -5,7 +5,7 @@ import fs from 'fs';
 
 
 const wss = new WebSocketServer({port: 8085 });
-let db = new JsonDB(new Config("%Documents%\\test.json", true, true, '/'));
+let db = new JsonDB(new Config("%UserProfile%\\Documents\\test.json", true, true, '/'));
 
 let index = 0;
 let connected_clients = {};
@@ -21,8 +21,8 @@ let arduinoActionHandler = (data) => {
     newData["time"] = Math.floor(date.getTime()/1000)
 
     // if (newData.longitude === 0 || newData.latitude === 0) {
-        newData.longitude = -0.5887466;
-        newData.latitude = 51.2427036;
+    //     newData.longitude = -0.5887466;
+    //     newData.latitude = 51.2427036;
     // }
 
     // Add to database
@@ -49,7 +49,7 @@ let clientActionHandler = async (data, ws)=> {
             break;
 
         case "export":
-            let exportableDataIndexes = await db.getData("/")
+            let exportableDataIndices = await db.getData("/")
             console.log("Excel export command")
 
             let data = [
@@ -66,14 +66,19 @@ let clientActionHandler = async (data, ws)=> {
                 },
             ]
 
-            for (const i in exportableDataIndexes) {
+            // Might not work
+            // for (const i in Object.keys(newData)) {
+            //     data[0].columns.push({label: i, value: i})
+            // }
+
+            for (const i in exportableDataIndices) {
                 let entry = {...await db.getData(`/${i}`)}
                 entry.time = new Date(i * 1000).toLocaleString()
                 data[0].content.push(entry)
             }
 
             let settings = {
-                fileName: "%Downloads%\\ExcelExport", // Name of the resulting spreadsheet
+                fileName: "%UserProfile%\\Documents\\ExcelExport", // Name of the resulting spreadsheet
                 extraLength: 3, // A bigger number means that columns will be wider
                 writeMode: "writeFile", // The available parameters are 'WriteFile' and 'write'. This setting is optional. Useful in such cases https://docs.sheetjs.com/docs/solutions/output#example-remote-file
                 writeOptions: {}, // Style options from https://docs.sheetjs.com/docs/api/write-options
@@ -82,7 +87,7 @@ let clientActionHandler = async (data, ws)=> {
 
             let finished = function () {
                 let delay = setInterval(() => {
-                    ws.send(JSON.stringify({command: "exportReady", location: "%Downloads%\\ExcelExport.xlsx"}))
+                    ws.send(JSON.stringify({command: "exportReady", location: "%UserProfile%\\Documents\\ExcelExport.xlsx"}))
                     clearInterval(delay)
                 }, 8000)
             }
@@ -93,8 +98,8 @@ let clientActionHandler = async (data, ws)=> {
         case "exportJson":
             console.log("JSON command")
 
-            fs.copyFile('%Documents%\\test.json', '%Downloads%\\ExportedData.json' ,() => {
-                ws.send(JSON.stringify({command: "exportReady", location: "%Downloads%\\ExportedData.json"}))
+            fs.copyFile('%%UserProfile%\\Documents\\test.json', '%UserProfile%\\Documents\\ExportedData.json' ,() => {
+                ws.send(JSON.stringify({command: "exportReady", location: "%UserProfile%\\Documents\\ExportedData.json"}))
             })
             break;
     }
