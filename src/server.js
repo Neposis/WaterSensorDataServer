@@ -2,14 +2,22 @@ import { WebSocketServer } from 'ws';
 import { JsonDB, Config } from 'node-json-db';
 import xlsx from "json-as-xlsx";
 import fs from 'fs';
+import os from 'os';
+import path from 'path';
 
+// Construct the path to the Downloads folder
+const userProfile = os.homedir();
+const TENGDatabasePath = path.join(userProfile, 'Documents/TENGDatabase');
+const downloadsPath = path.join(userProfile, 'Downloads');
 
 const wss = new WebSocketServer({port: 8085 });
-let db = new JsonDB(new Config("%UserProfile%\\Documents\\test.json", true, true, '/'));
+let db = new JsonDB(new Config(path.join(TENGDatabasePath, 'test.json'), true, true, '/'));
+
 
 let index = 0;
 let connected_clients = {};
 let arduino_client;
+let lastdata = {}
 
 
 // ================================= Arduino update notifications =================================
@@ -27,6 +35,8 @@ let arduinoActionHandler = (data) => {
 
     // Add to database
     db.push(`/${newData.time}`, newData).then()
+
+    lastdata = newData;
 
     // ------------------------- Update all connected clients with new data -------------------------
     if (Object.keys(connected_clients).length === 0) return;
@@ -56,20 +66,21 @@ let clientActionHandler = async (data, ws)=> {
                 {
                     sheet: "Data",
                     columns: [
-                        { label: "Time", value: "time"},
-                        { label: "TENG1", value: "TENG1"}, // Top level data
-                        { label: "TENG2", value: "TENG2"},
-                        { label: "TENG3", value: "TENG3"},
-                        { label: "TENG4", value: "TENG4"}
+                        // { label: "Time", value: "time"},
+                        // { label: "TENG1", value: "TENG1"}, // Top level data
+                        // { label: "TENG2", value: "TENG2"},
+                        // { label: "TENG3", value: "TENG3"},
+                        // { label: "TENG4", value: "TENG4"},
+                        // { label: "TENG5", value: "TENG5"},
+                        // { label: "TENG6", value: "TENG6"}
                     ],
                     content: [],
                 },
             ]
 
-            // Might not work
-            // for (const i in Object.keys(newData)) {
-            //     data[0].columns.push({label: i, value: i})
-            // }
+            for (const [key, value] of Object.entries(lastdata)) {
+                data[0].columns.push({label: key, value: key})
+            }
 
             for (const i in exportableDataIndices) {
                 let entry = {...await db.getData(`/${i}`)}
@@ -77,8 +88,9 @@ let clientActionHandler = async (data, ws)=> {
                 data[0].content.push(entry)
             }
 
+            let exceldatetime = new Date().getTime();
             let settings = {
-                fileName: "%UserProfile%\\Documents\\ExcelExport", // Name of the resulting spreadsheet
+                fileName: path.join(downloadsPath, `TENG_ExcelExport_${exceldatetime}`), // Name of the resulting spreadsheet
                 extraLength: 3, // A bigger number means that columns will be wider
                 writeMode: "writeFile", // The available parameters are 'WriteFile' and 'write'. This setting is optional. Useful in such cases https://docs.sheetjs.com/docs/solutions/output#example-remote-file
                 writeOptions: {}, // Style options from https://docs.sheetjs.com/docs/api/write-options
@@ -87,7 +99,7 @@ let clientActionHandler = async (data, ws)=> {
 
             let finished = function () {
                 let delay = setInterval(() => {
-                    ws.send(JSON.stringify({command: "exportReady", location: "%UserProfile%\\Documents\\ExcelExport.xlsx"}))
+                    ws.send(JSON.stringify({command: "exportReady"})) //, location: path.join(TENGDatabasePath, 'TENG_ExcelExport.xlsx')}))
                     clearInterval(delay)
                 }, 8000)
             }
@@ -96,10 +108,10 @@ let clientActionHandler = async (data, ws)=> {
             break;
 
         case "exportJson":
-            console.log("JSON command")
-
-            fs.copyFile('%%UserProfile%\\Documents\\test.json', '%UserProfile%\\Documents\\ExportedData.json' ,() => {
-                ws.send(JSON.stringify({command: "exportReady", location: "%UserProfile%\\Documents\\ExportedData.json"}))
+            let jsondatetime = new Date().getTime();
+            console.log("Export JSON command")
+            fs.copyFile(path.join(TENGDatabasePath, 'test.json'), path.join(downloadsPath, `TENG_JsonExport_${jsondatetime}.json`) ,() => {
+                ws.send(JSON.stringify({command: "exportReady"}))//, location: "%UserProfile%\\Documents\\ExportedData.json"}))
             })
             break;
     }
